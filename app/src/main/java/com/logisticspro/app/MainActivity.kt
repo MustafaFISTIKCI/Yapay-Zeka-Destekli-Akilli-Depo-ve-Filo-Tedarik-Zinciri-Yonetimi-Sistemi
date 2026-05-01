@@ -7,6 +7,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.logisticspro.app.ui.screens.HomeScreen
 import com.logisticspro.app.ui.screens.LoginScreen
 import com.logisticspro.app.ui.theme.LogisticsProTheme
 
@@ -19,7 +23,31 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    LoginScreen()
+                    val navController = rememberNavController()
+                    NavHost(
+                        navController = navController,
+                        startDestination = "login"
+                    ) {
+                        composable(
+                            "login",
+                            enterTransition = { androidx.compose.animation.fadeIn() },
+                            exitTransition = { androidx.compose.animation.fadeOut() }
+                        ) {
+                            LoginScreen(
+                                onNavigateToHome = {
+                                    navController.navigate("home") {
+                                        popUpTo("login") { inclusive = true }
+                                    }
+                                }
+                            )
+                        }
+                        composable(
+                            "home",
+                            enterTransition = { androidx.compose.animation.slideInHorizontally(initialOffsetX = { it }) + androidx.compose.animation.fadeIn() }
+                        ) {
+                            HomeScreen()
+                        }
+                    }
                 }
             }
         }
