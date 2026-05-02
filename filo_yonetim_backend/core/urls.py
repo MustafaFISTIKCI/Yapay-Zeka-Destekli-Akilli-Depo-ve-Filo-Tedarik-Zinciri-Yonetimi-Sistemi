@@ -20,4 +20,8 @@ from django.urls import path, include
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/auth/', include('accounts.urls')),
+    # Web arayüzü için Login/Logout (Django'nun hazır sistemini kullanır)
+    path('accounts/', include('django.contrib.auth.urls')),
+    # Ana sayfa ve lojistik işlemleri
+    path('', include('logistics.urls')),
 ]
