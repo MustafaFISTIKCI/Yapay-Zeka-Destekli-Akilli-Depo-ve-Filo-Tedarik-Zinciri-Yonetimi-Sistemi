@@ -18,6 +18,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
@@ -30,14 +31,40 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.logisticspro.app.ui.theme.*
+import com.logisticspro.app.ui.viewmodel.LoginState
+import com.logisticspro.app.ui.viewmodel.LoginViewModel
 
 @Composable
-fun LoginScreen() {
+fun LoginScreen(
+    viewModel: LoginViewModel = viewModel(),
+    onNavigateToHome: () -> Unit = {}
+) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
+
+    val loginState by viewModel.loginState.collectAsState()
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    LaunchedEffect(loginState) {
+        when (loginState) {
+            is LoginState.Success -> {
+                isLoading = false
+                onNavigateToHome()
+            }
+            is LoginState.Error -> {
+                isLoading = false
+                android.widget.Toast.makeText(context, (loginState as LoginState.Error).message, android.widget.Toast.LENGTH_SHORT).show()
+            }
+            is LoginState.Idle -> {
+                isLoading = false
+            }
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -69,7 +96,10 @@ fun LoginScreen() {
                 passwordVisible = passwordVisible,
                 onPasswordVisibilityToggle = { passwordVisible = !passwordVisible },
                 isLoading = isLoading,
-                onLoginClick = { isLoading = true }
+                onLoginClick = { 
+                    isLoading = true
+                    viewModel.login(username, password)
+                }
             )
 
             Spacer(modifier = Modifier.height(48.dp))
@@ -81,7 +111,7 @@ fun LoginScreen() {
 }
 
 @Composable
-private fun BackgroundDecorations() {
+private fun BoxScope.BackgroundDecorations() {
     // Top-left blur
     Box(
         modifier = Modifier
@@ -152,7 +182,7 @@ private fun BrandSection() {
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium,
             color = OnSurfaceVariant,
-            modifier = Modifier.alpha(0.7f)
+            modifier = Modifier.customAlpha(0.7f)
         )
     }
 }
@@ -416,7 +446,7 @@ private fun BiometricSection() {
             fontWeight = FontWeight.Bold,
             color = OnSurfaceVariant,
             letterSpacing = 0.1.sp,
-            modifier = Modifier.alpha(0.7f)
+            modifier = Modifier.customAlpha(0.7f)
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -463,7 +493,7 @@ private fun FooterMeta() {
                     fontWeight = FontWeight.Black,
                     color = OnSurfaceVariant,
                     letterSpacing = 0.1.sp,
-                    modifier = Modifier.alpha(0.4f)
+                    modifier = Modifier.customAlpha(0.4f)
                 )
 
                 Spacer(modifier = Modifier.height(4.dp))
@@ -500,8 +530,8 @@ private fun FooterMeta() {
                     .background(
                         color = OutlineVariant.copy(alpha = 0.3f)
                     ),
-                Alignment.Center
-            )
+                contentAlignment = Alignment.Center
+            ) {}
 
             // Version
             Column(
@@ -513,7 +543,7 @@ private fun FooterMeta() {
                     fontWeight = FontWeight.Black,
                     color = OnSurfaceVariant,
                     letterSpacing = 0.1.sp,
-                    modifier = Modifier.alpha(0.4f)
+                    modifier = Modifier.customAlpha(0.4f)
                 )
 
                 Spacer(modifier = Modifier.height(4.dp))
@@ -541,7 +571,7 @@ private fun FooterMeta() {
     }
 }
 
-private fun Modifier.alpha(alpha: Float) = this.then(
+private fun Modifier.customAlpha(alpha: Float) = this.then(
     Modifier.alpha(alpha)
 )
 
