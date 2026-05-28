@@ -130,5 +130,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ===================== AI SETTINGS =====================
 import os
+GROQ_API_KEY = os.getenv('GROQ_API_KEY')
 
-GROQ_API_KEY = os.getenv('GROQ_API_KEY', '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')  # Buraya kendi Groq key'ini yazacaksın
+
+if not GROQ_API_KEY:
+    GROQ_API_KEY = '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'
