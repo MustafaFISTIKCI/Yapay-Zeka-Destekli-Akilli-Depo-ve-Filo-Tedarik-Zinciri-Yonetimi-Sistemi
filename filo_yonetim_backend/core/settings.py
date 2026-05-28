@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'accounts',
     'logistics',
+    'ai_assistant'
 ]
 
 MIDDLEWARE = [
@@ -48,7 +49,7 @@ ROOT_URLCONF = 'core.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],   # templates klasörü için
+        'DIRS': [BASE_DIR / 'templates'],   # Mevcut hali koruyoruz
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -106,7 +107,7 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.AllowAny',
     ),
 }
 
@@ -126,3 +127,11 @@ LOGIN_REDIRECT_URL = 'admin:index'
 LOGOUT_REDIRECT_URL = 'admin:login'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# ===================== AI SETTINGS =====================
+import os
+GROQ_API_KEY = os.getenv('GROQ_API_KEY')
+
+
+if not GROQ_API_KEY:
+    GROQ_API_KEY = None
