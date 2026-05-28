@@ -135,3 +135,4 @@ GROQ_API_KEY = os.getenv('GROQ_API_KEY')
 
 if not GROQ_API_KEY:
     GROQ_API_KEY = None
+    #githuba push ederken api ile push etmemiz sebebiyle oluşan güvenlik açığı hakkında geliştirmeler yapıldı.
