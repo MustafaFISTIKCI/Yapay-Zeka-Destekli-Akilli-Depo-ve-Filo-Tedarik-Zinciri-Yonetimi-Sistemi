@@ -134,4 +134,4 @@ GROQ_API_KEY = os.getenv('GROQ_API_KEY')
 
 
 if not GROQ_API_KEY:
-    GROQ_API_KEY = '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'
+    GROQ_API_KEY = None
