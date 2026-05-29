@@ -20,7 +20,7 @@ Lojistik süreçlerinde manuel yönetimden kaynaklanan insan hataları, sipariş
 
     Mobile: Kotlin (Android).
 
-    Yapay Zeka: Google AI for Developers / Gemini API.
+    Yapay Zeka: Google AI for Developers / Gemini API. / Groq AI, Groq API
 
     Veri Yönetimi: Merkezi veri yapısı ve senkronize API mimarisi.
 
