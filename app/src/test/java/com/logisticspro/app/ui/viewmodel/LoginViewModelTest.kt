@@ -25,7 +25,7 @@ class LoginViewModelTest {
         val result = viewModel.validateCredentials(email, sifre)
 
         // Then
-        assertEquals("Email boş olamaz", result)
+        assertEquals("Email veya kullanıcı adı boş olamaz", result)
     }
 
     @Test
@@ -38,7 +38,7 @@ class LoginViewModelTest {
         val result = viewModel.validateCredentials(email, sifre)
 
         // Then
-        assertEquals("Geçerli bir email adresi giriniz (@ içermeli)", result)
+        assertEquals("Geçerli bir email adresi veya kullanıcı adı giriniz", result)
     }
 
     @Test
