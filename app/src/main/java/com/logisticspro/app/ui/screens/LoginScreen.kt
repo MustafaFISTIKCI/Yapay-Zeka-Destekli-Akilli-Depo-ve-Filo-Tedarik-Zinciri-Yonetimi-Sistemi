@@ -32,9 +32,47 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.biometric.BiometricPrompt
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentActivity
 import com.logisticspro.app.ui.theme.*
 import com.logisticspro.app.ui.viewmodel.LoginState
 import com.logisticspro.app.ui.viewmodel.LoginViewModel
+
+private fun showBiometricPrompt(
+    activity: FragmentActivity,
+    onSuccess: () -> Unit,
+    onError: (String) -> Unit
+) {
+    val executor = ContextCompat.getMainExecutor(activity)
+    val biometricPrompt = BiometricPrompt(activity, executor,
+        object : BiometricPrompt.AuthenticationCallback() {
+            override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                super.onAuthenticationError(errorCode, errString)
+                if (errorCode != BiometricPrompt.ERROR_USER_CANCELED && errorCode != BiometricPrompt.ERROR_NEGATIVE_BUTTON) {
+                    onError("Hata: $errString")
+                }
+            }
+
+            override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                super.onAuthenticationSucceeded(result)
+                onSuccess()
+            }
+
+            override fun onAuthenticationFailed() {
+                super.onAuthenticationFailed()
+                onError("Doğrulama başarısız. Tekrar deneyin.")
+            }
+        })
+
+    val promptInfo = BiometricPrompt.PromptInfo.Builder()
+        .setTitle("Logistics Pro")
+        .setSubtitle("Parmak izinizle giriş yapın")
+        .setNegativeButtonText("İptal")
+        .build()
+
+    biometricPrompt.authenticate(promptInfo)
+}
 
 @Composable
 fun LoginScreen(
@@ -99,6 +137,20 @@ fun LoginScreen(
                 onLoginClick = { 
                     isLoading = true
                     viewModel.login(username, password)
+                },
+                onBiometricClick = {
+                    val activity = context as? FragmentActivity
+                    if (activity != null) {
+                        showBiometricPrompt(
+                            activity = activity,
+                            onSuccess = { onNavigateToHome() },
+                            onError = { err -> 
+                                android.widget.Toast.makeText(context, err, android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        )
+                    } else {
+                        android.widget.Toast.makeText(context, "Biyometrik giriş desteklenmiyor", android.widget.Toast.LENGTH_SHORT).show()
+                    }
                 }
             )
 
@@ -196,7 +248,8 @@ private fun LoginCard(
     passwordVisible: Boolean,
     onPasswordVisibilityToggle: () -> Unit,
     isLoading: Boolean,
-    onLoginClick: () -> Unit
+    onLoginClick: () -> Unit,
+    onBiometricClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -266,7 +319,7 @@ private fun LoginCard(
             Spacer(modifier = Modifier.height(32.dp))
 
             // Biometric Section
-            BiometricSection()
+            BiometricSection(onBiometricClick = onBiometricClick)
         }
     }
 }
@@ -308,6 +361,8 @@ private fun UsernameField(
                 unfocusedContainerColor = SurfaceContainerHighest,
                 focusedIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent,
+                focusedTextColor = OnSurface,
+                unfocusedTextColor = OnSurface,
                 cursorColor = Secondary
             ),
             shape = RoundedCornerShape(16.dp),
@@ -382,6 +437,8 @@ private fun PasswordField(
                 unfocusedContainerColor = SurfaceContainerHighest,
                 focusedIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent,
+                focusedTextColor = OnSurface,
+                unfocusedTextColor = OnSurface,
                 cursorColor = Secondary
             ),
             shape = RoundedCornerShape(16.dp),
@@ -436,7 +493,7 @@ private fun LoginButton(
 }
 
 @Composable
-private fun BiometricSection() {
+private fun BiometricSection(onBiometricClick: () -> Unit) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -452,7 +509,7 @@ private fun BiometricSection() {
         Spacer(modifier = Modifier.height(16.dp))
 
         IconButton(
-            onClick = { /* TODO: Handle biometric login */ },
+            onClick = onBiometricClick,
             modifier = Modifier
                 .size(56.dp)
                 .background(
@@ -647,7 +704,8 @@ fun LoginCardPreview() {
             passwordVisible = false,
             onPasswordVisibilityToggle = {},
             isLoading = false,
-            onLoginClick = {}
+            onLoginClick = {},
+            onBiometricClick = {}
         )
     }
 }

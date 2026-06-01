@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -36,6 +37,7 @@ import androidx.core.content.ContextCompat
 @Composable
 fun HomeScreen(
     onNavigateToFleet: () -> Unit = {},
+    onNavigateToChat: () -> Unit = {},
     viewModel: HomeViewModel = viewModel()
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -43,6 +45,8 @@ fun HomeScreen(
     var showScanner by remember { mutableStateOf(false) }
     var showDeliveryConfirmation by remember { mutableStateOf(false) }
     var scannedBarcode by remember { mutableStateOf("") }
+
+    val routePoints by viewModel.routePoints.collectAsState()
 
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -134,13 +138,15 @@ fun HomeScreen(
             )
         },
         floatingActionButton = {
+            // AI Chatbot FAB
             FloatingActionButton(
-                onClick = { /*TODO*/ },
-                containerColor = Color(0xFFFF752D),
-                contentColor = Color(0xFF5F2100),
-                shape = RoundedCornerShape(16.dp)
+                onClick = onNavigateToChat,
+                containerColor = Color(0xFF0D47A1),
+                contentColor = Color.White,
+                shape = CircleShape,
+                modifier = Modifier.size(60.dp)
             ) {
-                Icon(Icons.Filled.Add, contentDescription = "Add")
+                Text("🤖", fontSize = 26.sp)
             }
         },
         bottomBar = {
@@ -272,23 +278,115 @@ fun HomeScreen(
                 }
             }
 
+            // Canlı Filo Takibi + Teslimat Noktaları Listesi
             item {
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Text("Canlı Filo Takibi", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Canlı Filo Takibi", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                        val deliveredCount = routePoints.count { it.isDelivered }
+                        val totalDeliveryPoints = routePoints.size - 1 // depo hariç
+                        Box(
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .background(
+                                    if (deliveredCount == totalDeliveryPoints) Color(0xFF4CAF50).copy(alpha = 0.15f)
+                                    else Color(0xFFDFE3E8)
+                                )
+                                .padding(horizontal = 12.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                "$deliveredCount / $totalDeliveryPoints Teslim",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (deliveredCount == totalDeliveryPoints) Color(0xFF2E7D32) else Color.DarkGray
+                            )
+                        }
+                    }
+
+                    // Canvas Harita
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(200.dp)
+                            .height(220.dp)
                             .clip(RoundedCornerShape(24.dp))
                             .background(Color.LightGray)
                     ) {
-                        FleetMapScreen(route = listOf(
-                            RoutePoint(41.0082, 28.9784), // Sultanahmet
-                            RoutePoint(41.0367, 28.9850), // Taksim
-                            RoutePoint(41.0150, 28.9390), // Fatih
-                            RoutePoint(41.0250, 28.9750), // Galata
-                            RoutePoint(41.0450, 29.0050)  // Beşiktaş
-                        ))
+                        FleetMapScreen(
+                            route = routePoints,
+                            onMapLongClick = { lat, lng ->
+                                viewModel.addRoutePoint(lat, lng)
+                            }
+                        )
+                    }
+
+                    // Teslimat Noktaları Kartları
+                    routePoints.forEachIndexed { index, point ->
+                        if (index == 0) return@forEachIndexed // Depo gösterilmez
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(
+                                    if (point.isDelivered) Color(0xFFE8F5E9) else Color(0xFFF1F4FA)
+                                )
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            if (point.isDelivered) Color(0xFF4CAF50) else Color(0xFFFF752D)
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (point.isDelivered) {
+                                        Icon(Icons.Filled.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                                    } else {
+                                        Text("$index", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                    }
+                                }
+                                Column {
+                                    Text(
+                                        point.name.ifEmpty { "Teslimat Noktası $index" },
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                        color = if (point.isDelivered) Color(0xFF2E7D32) else Color(0xFF1A1A1A)
+                                    )
+                                    Text(
+                                        if (point.isDelivered) "Teslim edildi ✓" else "Bekliyor",
+                                        fontSize = 12.sp,
+                                        color = if (point.isDelivered) Color(0xFF4CAF50) else Color.Gray
+                                    )
+                                }
+                            }
+
+                            if (!point.isDelivered) {
+                                Button(
+                                    onClick = { viewModel.markDelivered(index) },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFF0D47A1)
+                                    ),
+                                    shape = RoundedCornerShape(12.dp),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                    modifier = Modifier.height(36.dp)
+                                ) {
+                                    Text("Teslim Et", fontSize = 12.sp)
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -402,6 +500,47 @@ fun HomeScreen(
                                 Text("6,500 m²", fontSize = 18.sp, fontWeight = FontWeight.Black)
                             }
                         }
+                    }
+                }
+            }
+
+            // AI Asistan bilgi kartı — en altta
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(Color(0xFF1A237E), Color(0xFF0D47A1))
+                            )
+                        )
+                        .clickable { onNavigateToChat() }
+                        .padding(20.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(52.dp)
+                                .clip(CircleShape)
+                                .background(Color.White.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("🤖", fontSize = 28.sp)
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("AI Lojistik Asistanı", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Text(
+                                "Stok analizi, rota optimizasyonu ve maliyet tahmini için AI'a sorun",
+                                color = Color.White.copy(alpha = 0.7f),
+                                fontSize = 12.sp,
+                                lineHeight = 16.sp
+                            )
+                        }
+                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Color.White.copy(alpha = 0.7f))
                     }
                 }
             }

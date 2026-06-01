@@ -1,5 +1,6 @@
 package com.logisticspro.app.data.model
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -18,7 +19,9 @@ data class InventoryItem(
 @Serializable
 data class RoutePoint(
     val latitude: Double,
-    val longitude: Double
+    val longitude: Double,
+    val name: String = "",
+    val isDelivered: Boolean = false
 )
 
 @Serializable
@@ -45,4 +48,23 @@ data class LoginResponse(
     val accessToken: String,
     val refreshToken: String,
     val role: String // e.g., "WAREHOUSE_STAFF", "FLEET_DRIVER"
+)
+
+// ===================== AI CHAT MODELS =====================
+
+@Serializable
+data class AiChatRequest(
+    val message: String
+)
+
+@Serializable
+data class AiChatResponse(
+    @SerialName("user_message") val userMessage: String,
+    @SerialName("ai_response") val aiResponse: String
+)
+
+data class ChatMessage(
+    val content: String,
+    val isUser: Boolean,
+    val timestamp: Long = System.currentTimeMillis()
 )

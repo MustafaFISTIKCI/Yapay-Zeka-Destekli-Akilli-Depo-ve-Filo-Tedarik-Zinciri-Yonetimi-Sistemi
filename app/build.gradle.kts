@@ -90,4 +90,7 @@ dependencies {
 
     // ML Kit Barcode Scanning
     implementation("com.google.android.gms:play-services-mlkit-barcode-scanning:18.3.0")
+
+    // Biometric Auth
+    implementation("androidx.biometric:biometric:1.1.0")
 }
