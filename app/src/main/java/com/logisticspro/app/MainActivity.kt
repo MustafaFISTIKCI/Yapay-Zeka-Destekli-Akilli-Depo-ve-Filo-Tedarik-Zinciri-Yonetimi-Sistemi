@@ -12,6 +12,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.logisticspro.app.ui.screens.HomeScreen
 import com.logisticspro.app.ui.screens.LoginScreen
+import com.logisticspro.app.ui.screens.fleet.FleetDashboardScreen
 import com.logisticspro.app.ui.theme.LogisticsProTheme
 
 class MainActivity : ComponentActivity() {
@@ -45,7 +46,14 @@ class MainActivity : ComponentActivity() {
                             "home",
                             enterTransition = { androidx.compose.animation.slideInHorizontally(initialOffsetX = { it }) + androidx.compose.animation.fadeIn() }
                         ) {
-                            HomeScreen()
+                            HomeScreen(
+                                onNavigateToFleet = {
+                                    navController.navigate("fleet_dashboard")
+                                }
+                            )
+                        }
+                        composable("fleet_dashboard") {
+                            FleetDashboardScreen()
                         }
                     }
                 }

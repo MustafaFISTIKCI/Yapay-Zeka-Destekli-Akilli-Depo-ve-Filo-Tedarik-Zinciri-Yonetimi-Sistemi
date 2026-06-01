@@ -18,12 +18,104 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.logisticspro.app.ui.screens.fleet.FleetMapScreen
+import com.logisticspro.app.data.model.RoutePoint
+import com.logisticspro.app.ui.viewmodel.HomeUiEvent
+import com.logisticspro.app.ui.viewmodel.HomeViewModel
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen() {
+fun HomeScreen(
+    onNavigateToFleet: () -> Unit = {},
+    viewModel: HomeViewModel = viewModel()
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var showStockDialog by remember { mutableStateOf(false) }
+    var showScanner by remember { mutableStateOf(false) }
+    var showDeliveryConfirmation by remember { mutableStateOf(false) }
+    var scannedBarcode by remember { mutableStateOf("") }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            showScanner = true
+        } else {
+            android.widget.Toast.makeText(context, "Kamera izni reddedildi", android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.uiEvent.collect { event ->
+            when (event) {
+                is HomeUiEvent.ShowToast -> {
+                    android.widget.Toast.makeText(context, event.message, android.widget.Toast.LENGTH_SHORT).show()
+                }
+                HomeUiEvent.ShowStockUpdateDialog -> {
+                    showStockDialog = true
+                }
+                HomeUiEvent.OpenBarcodeScanner -> {
+                    if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                        showScanner = true
+                    } else {
+                        cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                    }
+                }
+                is HomeUiEvent.ShowDeliveryConfirmation -> {
+                    scannedBarcode = event.barcode
+                    showScanner = false
+                    showDeliveryConfirmation = true
+                }
+            }
+        }
+    }
+
+    if (showScanner) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            BarcodeScannerScreen(
+                onBarcodeScanned = { barcode ->
+                    viewModel.onBarcodeScanned(barcode)
+                }
+            )
+            IconButton(
+                onClick = { showScanner = false },
+                modifier = Modifier.padding(16.dp).align(androidx.compose.ui.Alignment.TopEnd)
+            ) {
+                Icon(Icons.Filled.Close, contentDescription = "Kapat", tint = Color.White)
+            }
+        }
+    }
+
+    if (showDeliveryConfirmation) {
+        DeliveryConfirmationDialog(
+            packageId = scannedBarcode,
+            onDismiss = { showDeliveryConfirmation = false },
+            onConfirm = {
+                viewModel.confirmDelivery(scannedBarcode)
+                showDeliveryConfirmation = false
+            }
+        )
+    }
+
+    if (showStockDialog) {
+        StockUpdateDialog(
+            onDismiss = { showStockDialog = false },
+            onConfirm = { id, qty ->
+                viewModel.updateStock(id, qty)
+                showStockDialog = false
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -77,7 +169,7 @@ fun HomeScreen() {
                     icon = { Icon(Icons.Filled.LocalShipping, contentDescription = "Fleet") },
                     label = { Text("FLEET", fontSize = 10.sp) },
                     selected = false,
-                    onClick = { /*TODO*/ }
+                    onClick = onNavigateToFleet
                 )
                 NavigationBarItem(
                     icon = { Icon(Icons.Filled.AccountCircle, contentDescription = "Profile") },
@@ -127,7 +219,7 @@ fun HomeScreen() {
                                     colors = listOf(Color(0xFF003461), Color(0xFF004B87))
                                 )
                             )
-                            .clickable { /*TODO*/ }
+                            .clickable { viewModel.onScanBarcodeClick() }
                             .padding(20.dp)
                     ) {
                         Column(
@@ -155,7 +247,7 @@ fun HomeScreen() {
                             .weight(1f)
                             .clip(RoundedCornerShape(24.dp))
                             .background(Color(0xFFFF752D))
-                            .clickable { /*TODO*/ }
+                            .clickable { viewModel.onUpdateStockClick() }
                             .padding(20.dp)
                     ) {
                         Column(
@@ -176,6 +268,27 @@ fun HomeScreen() {
                                 Text("Mevcut envanter adetlerini düzenle", color = Color(0xFF7C2E00), fontSize = 12.sp)
                             }
                         }
+                    }
+                }
+            }
+
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text("Canlı Filo Takibi", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                            .clip(RoundedCornerShape(24.dp))
+                            .background(Color.LightGray)
+                    ) {
+                        FleetMapScreen(route = listOf(
+                            RoutePoint(41.0082, 28.9784), // Sultanahmet
+                            RoutePoint(41.0367, 28.9850), // Taksim
+                            RoutePoint(41.0150, 28.9390), // Fatih
+                            RoutePoint(41.0250, 28.9750), // Galata
+                            RoutePoint(41.0450, 29.0050)  // Beşiktaş
+                        ))
                     }
                 }
             }
@@ -294,6 +407,79 @@ fun HomeScreen() {
             }
         }
     }
+}
+
+@Composable
+fun DeliveryConfirmationDialog(
+    packageId: String,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Filled.VerifiedUser, contentDescription = null, tint = Color(0xFF0D47A1)) },
+        title = { Text("Teslimat Onayı") },
+        text = {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Paket ID: $packageId", fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Bu paketin teslim edildiğini onaylıyor musunuz?", textAlign = TextAlign.Center)
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0D47A1))
+            ) {
+                Text("Teslimatı Onayla")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("İptal")
+            }
+        }
+    )
+}
+
+@Composable
+fun StockUpdateDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (String, String) -> Unit
+) {
+    var productId by remember { mutableStateOf("") }
+    var quantity by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Stok Güncelle") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = productId,
+                    onValueChange = { productId = it },
+                    label = { Text("Ürün ID veya SKU") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = quantity,
+                    onValueChange = { quantity = it },
+                    label = { Text("Yeni Miktar") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = { onConfirm(productId, quantity) }) {
+                Text("Güncelle")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("İptal")
+            }
+        }
+    )
 }
 
 @Composable
