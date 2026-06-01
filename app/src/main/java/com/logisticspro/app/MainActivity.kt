@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.logisticspro.app.ui.screens.AiChatScreen
 import com.logisticspro.app.ui.screens.HomeScreen
 import com.logisticspro.app.ui.screens.LoginScreen
 import com.logisticspro.app.ui.screens.fleet.FleetDashboardScreen
@@ -49,11 +50,31 @@ class MainActivity : ComponentActivity() {
                             HomeScreen(
                                 onNavigateToFleet = {
                                     navController.navigate("fleet_dashboard")
+                                },
+                                onNavigateToChat = {
+                                    navController.navigate("ai_chat")
                                 }
                             )
                         }
                         composable("fleet_dashboard") {
                             FleetDashboardScreen()
+                        }
+                        composable(
+                            "ai_chat",
+                            enterTransition = {
+                                androidx.compose.animation.slideInVertically(initialOffsetY = { it }) +
+                                    androidx.compose.animation.fadeIn()
+                            },
+                            exitTransition = {
+                                androidx.compose.animation.slideOutVertically(targetOffsetY = { it }) +
+                                    androidx.compose.animation.fadeOut()
+                            }
+                        ) {
+                            AiChatScreen(
+                                onNavigateBack = {
+                                    navController.popBackStack()
+                                }
+                            )
                         }
                     }
                 }
