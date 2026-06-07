@@ -21,15 +21,21 @@ class HomeViewModel : ViewModel() {
     private val _uiEvent = MutableSharedFlow<HomeUiEvent>()
     val uiEvent = _uiEvent.asSharedFlow()
 
-    // Teslimat rotası state'i
+    // Seçili teslimat noktası index'i (-1 ise en yakın otomatik seçilir)
+    private val _selectedPointIndex = MutableStateFlow(-1)
+    val selectedPointIndex: StateFlow<Int> = _selectedPointIndex.asStateFlow()
+
+    fun selectPoint(index: Int) {
+        _selectedPointIndex.value = index
+    }
     private val _routePoints = MutableStateFlow(
         optimizeRoute(
             listOf(
-                RoutePoint(41.0082, 28.9784, "Ana Depo"),
-                RoutePoint(41.0367, 28.9850, "Taksim Şube"),
-                RoutePoint(41.0150, 28.9390, "Fatih Depo"),
-                RoutePoint(41.0250, 28.9750, "Galata Teslimat"),
-                RoutePoint(41.0450, 29.0050, "Beşiktaş Müşteri")
+                RoutePoint(39.9334, 32.8597, "Ana Depo (Ulus)"),
+                RoutePoint(39.9042, 32.8598, "Kızılay Şube"),
+                RoutePoint(39.8912, 32.7820, "Çankaya Teslimat"),
+                RoutePoint(39.9208, 32.8541, "Bahçelievler Noktası"),
+                RoutePoint(39.9125, 32.8402, "Anıttepe Müşteri")
             )
         )
     )
@@ -38,11 +44,19 @@ class HomeViewModel : ViewModel() {
     fun markDelivered(index: Int) {
         viewModelScope.launch {
             val currentList = _routePoints.value.toMutableList()
-            if (index in currentList.indices && index != 0) { // 0 = Depo, teslim edilemez
-                val deliveredPointName = currentList[index].name
-                currentList[index] = currentList[index].copy(isDelivered = true)
+            if (index in currentList.indices && index != 0) {
+                val pointToDeliver = currentList.removeAt(index)
+                val deliveredPoint = pointToDeliver.copy(isDelivered = true)
+                
+                // Teslim edilenleri listenin başına (depodan hemen sonraya) ama teslim sırasına göre ekleyelim
+                // Depo (0), Teslim Edilen 1, Teslim Edilen 2 ... Bekleyen 1, Bekleyen 2
+                val lastDeliveredIndex = currentList.indexOfLast { it.isDelivered }
+                val insertIndex = if (lastDeliveredIndex == -1) 1 else lastDeliveredIndex + 1
+                
+                currentList.add(insertIndex, deliveredPoint)
+                
                 _routePoints.value = optimizeRoute(currentList)
-                _uiEvent.emit(HomeUiEvent.ShowToast("✅ $deliveredPointName teslim edildi! Rota güncellendi."))
+                _uiEvent.emit(HomeUiEvent.ShowToast("✅ ${deliveredPoint.name} teslim edildi! Bulunduğunuz yerden yeni rota hesaplandı."))
             }
         }
     }
@@ -60,26 +74,27 @@ class HomeViewModel : ViewModel() {
     private fun optimizeRoute(points: List<RoutePoint>): List<RoutePoint> {
         if (points.isEmpty()) return points
         
-        val depo = points.first() // index 0 is always Depo
+        val depo = points.first()
         
-        // Delivered points stay in their current relative order
+        // Teslim edilmiş noktalar (zaten doğru sıradalar - markDelivered içinde sıraya soktuk)
         val delivered = points.filter { it.isDelivered && it != depo }
         
-        // Undelivered points will be sorted
+        // Henüz teslim edilmemiş noktalar
         val undelivered = points.filter { !it.isDelivered && it != depo }.toMutableList()
         
         val result = mutableListOf<RoutePoint>()
         result.add(depo)
         result.addAll(delivered)
         
-        // Find nearest neighbor for the remaining points
+        // Referans noktamız: Eğer hiç teslimat yoksa depo, varsa EN SON TESLİMAT YAPILAN yer.
         var currentLocation = delivered.lastOrNull() ?: depo
         
+        // Kalan noktaları EN SON TESLİMAT YAPILAN YERDEN başlayarak en yakına göre diz
         while (undelivered.isNotEmpty()) {
             val nearest = undelivered.minByOrNull { calculateDistance(currentLocation, it) }!!
             result.add(nearest)
             undelivered.remove(nearest)
-            currentLocation = nearest
+            currentLocation = nearest // Bir sonrakini bulmak için şu anki hedefi başlangıç yap
         }
         
         return result
