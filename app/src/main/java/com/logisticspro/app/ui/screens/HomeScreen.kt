@@ -203,7 +203,7 @@ fun HomeScreen(
                         fontWeight = FontWeight.Medium
                     )
                     Text(
-                        text = "Hoş Geldin, Alex Miller",
+                        text = "Hoş Geldin, Mustafa",
                         fontSize = 28.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -319,6 +319,11 @@ fun HomeScreen(
                             route = routePoints,
                             onMapLongClick = { lat, lng ->
                                 viewModel.addRoutePoint(lat, lng)
+                            },
+                            onMarkerClick = { index ->
+                                // Haritadan tıklandığında hem seç hem de filoya yönlendir
+                                viewModel.selectPoint(index)
+                                onNavigateToFleet()
                             }
                         )
                     }
@@ -375,7 +380,12 @@ fun HomeScreen(
 
                             if (!point.isDelivered) {
                                 Button(
-                                    onClick = { viewModel.markDelivered(index) },
+                                    onClick = {
+                                        val gmmIntentUri = android.net.Uri.parse("google.navigation:q=${point.latitude},${point.longitude}")
+                                        val mapIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, gmmIntentUri)
+                                        mapIntent.setPackage("com.google.android.apps.maps")
+                                        context.startActivity(mapIntent)
+                                    },
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = Color(0xFF0D47A1)
                                     ),
@@ -383,7 +393,7 @@ fun HomeScreen(
                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                                     modifier = Modifier.height(36.dp)
                                 ) {
-                                    Text("Teslim Et", fontSize = 12.sp)
+                                    Text("Yol Tarifi", fontSize = 12.sp)
                                 }
                             }
                         }

@@ -13,7 +13,8 @@ import com.logisticspro.app.data.model.RoutePoint
 @Composable
 fun FleetMapScreen(
     route: List<RoutePoint>,
-    onMapLongClick: (Double, Double) -> Unit = { _, _ -> }
+    onMapLongClick: (Double, Double) -> Unit = { _, _ -> },
+    onMarkerClick: (Int) -> Unit = {}
 ) {
     if (route.isEmpty()) return
 
@@ -36,19 +37,29 @@ fun FleetMapScreen(
     ) {
         val latLngList = mutableListOf<LatLng>()
         
+        // Önce teslim edilen en son noktayı bulalım (bulunulan yer)
+        val lastDelivered = route.lastOrNull { it.isDelivered }
+        
+        // Eğer bir teslimat yapıldıysa rotayı oradan başlat, yoksa depodan başlat
+        if (lastDelivered != null) {
+            latLngList.add(LatLng(lastDelivered.latitude, lastDelivered.longitude))
+        } else if (route.isNotEmpty()) {
+            latLngList.add(LatLng(route.first().latitude, route.first().longitude))
+        }
+
         route.forEachIndexed { index, point ->
             val latLng = LatLng(point.latitude, point.longitude)
             val isStart = index == 0
             
-            // Marker rengini belirle (Teslim edildi = Yeşil, Teslim edilmedi = Kırmızı, Başlangıç = Mavi)
+            // Marker rengini belirle
             val markerColor = when {
                 isStart -> BitmapDescriptorFactory.HUE_BLUE
                 point.isDelivered -> BitmapDescriptorFactory.HUE_GREEN
                 else -> BitmapDescriptorFactory.HUE_ORANGE
             }
             
-            // Eğer nokta teslim edilmemişse veya başlangıç noktasıysa rota çizgisine ekle
-            if (!point.isDelivered || isStart) {
+            // Sadece bekleyen noktaları rota çizgisine ekle (zaten başa başlangıç noktasını ekledik)
+            if (!point.isDelivered && !isStart) {
                 latLngList.add(latLng)
             }
 
@@ -56,7 +67,11 @@ fun FleetMapScreen(
                 state = MarkerState(position = latLng),
                 title = if (point.name.isNotEmpty()) point.name else "Nokta $index",
                 snippet = if (point.isDelivered) "Teslim Edildi" else "Bekliyor",
-                icon = BitmapDescriptorFactory.defaultMarker(markerColor)
+                icon = BitmapDescriptorFactory.defaultMarker(markerColor),
+                onClick = {
+                    onMarkerClick(index)
+                    false
+                }
             )
         }
 

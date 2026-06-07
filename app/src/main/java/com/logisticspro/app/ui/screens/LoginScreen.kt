@@ -319,7 +319,6 @@ private fun LoginCard(
             Spacer(modifier = Modifier.height(32.dp))
 
             // Biometric Section
-            BiometricSection(onBiometricClick = onBiometricClick)
         }
     }
 }
@@ -347,7 +346,7 @@ private fun UsernameField(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
-            placeholder = { Text("alex.miller") },
+            placeholder = { Text("surucu@logisticspro.com") },
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.Person,
@@ -489,41 +488,6 @@ private fun LoginButton(
             tint = OnPrimary,
             modifier = Modifier.size(20.dp)
         )
-    }
-}
-
-@Composable
-private fun BiometricSection(onBiometricClick: () -> Unit) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = "VEYA ŞUNUNLA DEVAM ET",
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Bold,
-            color = OnSurfaceVariant,
-            letterSpacing = 0.1.sp,
-            modifier = Modifier.customAlpha(0.7f)
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        IconButton(
-            onClick = onBiometricClick,
-            modifier = Modifier
-                .size(56.dp)
-                .background(
-                    color = SurfaceContainer,
-                    shape = RoundedCornerShape(16.dp)
-                )
-        ) {
-            Icon(
-                imageVector = Icons.Default.Fingerprint,
-                contentDescription = null,
-                tint = Primary,
-                modifier = Modifier.size(32.dp)
-            )
-        }
     }
 }
 

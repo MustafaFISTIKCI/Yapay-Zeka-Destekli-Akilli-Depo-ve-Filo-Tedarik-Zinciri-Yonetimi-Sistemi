@@ -16,6 +16,9 @@ import com.logisticspro.app.ui.screens.LoginScreen
 import com.logisticspro.app.ui.screens.fleet.FleetDashboardScreen
 import com.logisticspro.app.ui.theme.LogisticsProTheme
 
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.logisticspro.app.ui.viewmodel.HomeViewModel
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -26,6 +29,9 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
+                    // Shared ViewModel for Home and Fleet
+                    val homeViewModel: HomeViewModel = viewModel()
+                    
                     NavHost(
                         navController = navController,
                         startDestination = "login"
@@ -48,6 +54,7 @@ class MainActivity : ComponentActivity() {
                             enterTransition = { androidx.compose.animation.slideInHorizontally(initialOffsetX = { it }) + androidx.compose.animation.fadeIn() }
                         ) {
                             HomeScreen(
+                                viewModel = homeViewModel,
                                 onNavigateToFleet = {
                                     navController.navigate("fleet_dashboard")
                                 },
@@ -57,7 +64,12 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable("fleet_dashboard") {
-                            FleetDashboardScreen()
+                            FleetDashboardScreen(
+                                viewModel = homeViewModel,
+                                onNavigateBack = {
+                                    navController.popBackStack()
+                                }
+                            )
                         }
                         composable(
                             "ai_chat",
